@@ -153,6 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 ctx.lineTo(tri.dots[1].x, tri.dots[1].y);
                 ctx.lineTo(tri.dots[2].x, tri.dots[2].y);
                 ctx.closePath();
+                // *** 即使是混色的，也用得分玩家的顏色填滿 ***
                 ctx.fillStyle = PLAYER_COLORS[tri.player].fill;
                 ctx.fill();
             }
@@ -300,26 +301,24 @@ document.addEventListener('DOMContentLoaded', () => {
         // 6. 檢查得分
         let scoredThisTurn = false;
         let totalFilledTriangles = 0;
+        
         triangles.forEach(tri => {
             if (!tri.filled) {
                 // 檢查1：三條線是否都存在且都畫了
                 const isComplete = tri.lineKeys.every(key => lines[key] && lines[key].drawn);
+                
+                // --- 【規則修改處】 ---
                 if (isComplete) {
-                    // 檢查2：三條線是否都屬於當前玩家
-                    const line1Player = lines[tri.lineKeys[0]].player;
-                    const line2Player = lines[tri.lineKeys[1]].player;
-                    const line3Player = lines[tri.lineKeys[2]].player;
-                    if (line1Player === currentPlayer && line2Player === currentPlayer && line3Player === currentPlayer) {
-                        tri.filled = true;
-                        tri.player = currentPlayer;
-                        scores[currentPlayer]++;
-                        scoredThisTurn = true; // 得分！獲得額外回合
-                    } else {
-                        // 三角形完成了，但是是"混色"的
-                        tri.filled = true;
-                        tri.player = 0; // 標記為作廢
-                    }
+                    // 新規則：只要三角形完成了，當前玩家 (畫最後一筆的人) 就得分
+                    // 不再檢查三條線是否為同一玩家
+                    tri.filled = true;
+                    tri.player = currentPlayer; // 這個三角形算作當前玩家的
+                    scores[currentPlayer]++;
+                    scoredThisTurn = true; // 得分！獲得額外回合
+
+                    // (原版的 'else' (混色作廢) 邏輯已移除)
                 }
+                // --- 【規則修改結束】 ---
             }
             if (tri.filled) totalFilledTriangles++;
         });
