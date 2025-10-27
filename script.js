@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // 取得 HTML 元素 (與前一版相同)
+    // 取得 HTML 元素
     const canvas = document.getElementById('game-canvas');
     const ctx = canvas.getContext('2d');
     const score1El = document.getElementById('score1');
@@ -15,19 +15,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 遊戲設定
     const GRID_SIZE = 4;
-    const DOT_SPACING = 100;
-    const PADDING = 50;
+    const DOT_SPACING = 100; // 畫布內部邏輯的點距
+    const PADDING = 50; // 畫布內部邏輯的留白
     const DOT_RADIUS = 6;
     const LINE_WIDTH = 4;
     const CLICK_TOLERANCE_DOT = 15;
 
-    // 玩家顏色 (與前一版相同)
+    // 玩家顏色 (使用 CSS style.css 中定義的顏色)
     const PLAYER_COLORS = {
-        1: { line: '#3498db', fill: 'rgba(52, 152, 219, 0.3)' }, // 使用 CSS 中的 P1 顏色
-        2: { line: '#e74c3c', fill: 'rgba(231, 76, 60, 0.3)' }, // 使用 CSS 中的 P2 顏色
-        0: { line: '#95a5a6', fill: 'rgba(149, 165, 166, 0.2)' } // 中立色
+        1: { line: '#3498db', fill: 'rgba(52, 152, 219, 0.3)' },
+        2: { line: '#e74c3c', fill: 'rgba(231, 76, 60, 0.3)' },
+        0: { line: '#95a5a6', fill: 'rgba(149, 165, 166, 0.2)' } // 中立/作廢
     };
-    const DEFAULT_LINE_COLOR = '#e0e0e0'; // 淺灰色
+    const DEFAULT_LINE_COLOR = '#e0e0e0';
 
     // 遊戲狀態
     let currentPlayer = 1;
@@ -35,19 +35,19 @@ document.addEventListener('DOMContentLoaded', () => {
     let dots = [];
     let lines = {};
     let triangles = [];
-    
-    // 【修改】 總三角形數變為 36
-    let totalTriangles = (GRID_SIZE - 1) * (GRID_SIZE - 1) * 4; // 3x3 方格 * 4個三角形 = 36
+    let totalTriangles = (GRID_SIZE - 1) * (GRID_SIZE - 1) * 4; // 3x3 * 4 = 36
     
     let selectedDot1 = null;
     let selectedDot2 = null;
 
     // 初始化遊戲
     function initGame() {
+        // 設定畫布的 "真實" 像素大小
         const canvasSize = (GRID_SIZE - 1) * DOT_SPACING + PADDING * 2;
         canvas.width = canvasSize;
         canvas.height = canvasSize;
 
+        // 重置所有狀態
         currentPlayer = 1;
         scores = { 1: 0, 2: 0 };
         dots = [];
@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
         actionBar.classList.add('hidden');
         gameOverMessage.classList.add('hidden');
 
-        // 1. 產生所有點的座標 (相同)
+        // 1. 產生所有點的座標 (r, c)
         for (let r = 0; r < GRID_SIZE; r++) {
             dots[r] = [];
             for (let c = 0; c < GRID_SIZE; c++) {
@@ -70,68 +70,67 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // 【修改】 2. 產生所有"小線段" (H, V, D, 和新的 A)
-        lines = {}; // 清空
+        // 2. 產生所有 "小線段" (H, V, D, A)
+        lines = {};
         for (let r = 0; r < GRID_SIZE; r++) {
             for (let c = 0; c < GRID_SIZE; c++) {
-                // 橫線 (H)
+                // 橫線 (Horizontal)
                 if (c < GRID_SIZE - 1) {
                     const id = `H_${r},${c}`;
                     lines[id] = { p1: dots[r][c], p2: dots[r][c + 1], drawn: false, player: null, id: id };
                 }
-                // 直線 (V)
+                // 直線 (Vertical)
                 if (r < GRID_SIZE - 1) {
                     const id = `V_${r},${c}`;
                     lines[id] = { p1: dots[r][c], p2: dots[r + 1][c], drawn: false, player: null, id: id };
                 }
-                // 正斜線 (D, 左上 -> 右下)
+                // 正斜線 (Diagonal, \)
                 if (r < GRID_SIZE - 1 && c < GRID_SIZE - 1) {
                     const id = `D_${r},${c}`;
                     lines[id] = { p1: dots[r][c], p2: dots[r + 1][c + 1], drawn: false, player: null, id: id };
                 }
-                // 【新】 反斜線 (A, 右上 -> 左下)
+                // 反斜線 (Anti-diagonal, /)
                 if (r < GRID_SIZE - 1 && c > 0) {
-                    const id = `A_${r},${c}`; // 代表 (r, c) 到 (r+1, c-1)
+                    const id = `A_${r},${c}`; // (r, c) -> (r+1, c-1)
                     lines[id] = { p1: dots[r][c], p2: dots[r + 1][c - 1], drawn: false, player: null, id: id };
                 }
             }
         }
 
-        // 【修改】 3. 產生所有 36 個三角形
-        triangles = []; // 清空
+        // 3. 產生所有 36 個三角形
+        triangles = [];
         for (let r = 0; r < GRID_SIZE - 1; r++) {
             for (let c = 0; c < GRID_SIZE - 1; c++) {
-                // 找出 (r,c) 這個 1x1 方格的所有邊
-                const h1 = `H_${r},${c}`;   // 上方橫線
-                const h2 = `H_${r + 1},${c}`; // 下方橫線
-                const v1 = `V_${r},${c}`;   // 左方直線
-                const v2 = `V_${r},${c + 1}`; // 右方直線
+                // 1x1 方格的四條邊
+                const h1 = `H_${r},${c}`;   // 上
+                const h2 = `H_${r + 1},${c}`; // 下
+                const v1 = `V_${r},${c}`;   // 左
+                const v2 = `V_${r},${c + 1}`; // 右
                 
-                // 正斜線 \
-                const diag_D = `D_${r},${c}`; // (r,c) -> (r+1,c+1)
-                // 反斜線 /
-                const diag_A = `A_${r},${c + 1}`; // (r,c+1) -> (r+1,c)
+                // 1x1 方格的兩條斜線
+                const diag_D = `D_${r},${c}`; // \
+                const diag_A = `A_${r},${c + 1}`; // /
 
-                // 基於 正斜線 \ 的 2 個三角形
-                triangles.push({ // 右上
-                    lineKeys: [h1, v2, diag_D],
+                // 基於 \ 的 2 個三角形
+                triangles.push({
+                    lineKeys: [h1, v2, diag_D], // 右上
                     dots: [dots[r][c], dots[r][c + 1], dots[r + 1][c + 1]],
                     filled: false, player: null
                 });
-                triangles.push({ // 左下
-                    lineKeys: [h2, v1, diag_D],
+                triangles.push({
+                    lineKeys: [h2, v1, diag_D], // 左下
                     dots: [dots[r][c], dots[r + 1][c], dots[r + 1][c + 1]],
                     filled: false, player: null
                 });
 
-                // 【新】 基於 反斜線 / 的 2 個三角形
-                triangles.push({ // 左上
-                    lineKeys: [h1, v1, diag_A],
+                // 基於 / 的 2 個三角形
+                triangles.push({
+                    lineKeys: [h1, v1, diag_A], // 左上
                     dots: [dots[r][c], dots[r][c + 1], dots[r+1][c]],
                     filled: false, player: null
                 });
-                triangles.push({ // 右下
-                    lineKeys: [h2, v2, diag_A],
+                triangles.push({
+                    lineKeys: [h2, v2, diag_A], // 右下
                     dots: [dots[r][c + 1], dots[r + 1][c], dots[r + 1][c + 1]],
                     filled: false, player: null
                 });
@@ -146,7 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function drawCanvas() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // 1. 繪製已完成的三角形 (相同)
+        // 1. 繪製已完成的三角形 (填色)
         triangles.forEach(tri => {
             if (tri.filled) {
                 ctx.beginPath();
@@ -159,7 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // 2. 繪製所有線條 (相同)
+        // 2. 繪製所有線條 (已畫或提示)
         for (const id in lines) {
             const line = lines[id];
             ctx.beginPath();
@@ -171,23 +170,23 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 ctx.strokeStyle = DEFAULT_LINE_COLOR;
                 ctx.lineWidth = 1;
-                ctx.setLineDash([2, 4]);
+                ctx.setLineDash([2, 4]); // 虛線
             }
             ctx.stroke();
-            ctx.setLineDash([]);
+            ctx.setLineDash([]); // 重置虛線
         }
 
-        // 3. 繪製所有的點 (相同)
+        // 3. 繪製所有的點
         for (let r = 0; r < GRID_SIZE; r++) {
             for (let c = 0; c < GRID_SIZE; c++) {
                 ctx.beginPath();
                 ctx.arc(dots[r][c].x, dots[r][c].y, DOT_RADIUS, 0, 2 * Math.PI);
-                ctx.fillStyle = '#34495e'; // 使用 CSS 的文字色
+                ctx.fillStyle = '#34495e'; // 點的顏色
                 ctx.fill();
             }
         }
         
-        // 4. 高亮顯示被選中的點 (相同)
+        // 4. 高亮顯示被選中的點 (點1 和 點2)
         [selectedDot1, selectedDot2].forEach(dot => {
             if (dot) {
                 ctx.beginPath();
@@ -199,46 +198,76 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 點擊畫布 (相同)
+    // 點擊/觸控畫布 (包含手機版座標換算)
     function handleCanvasClick(e) {
+        // 如果按鈕已顯示 (等待確認)，禁止再點選畫布
         if (!actionBar.classList.contains('hidden')) {
             return;
         }
+
         const rect = canvas.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
+
+        // 計算畫布在螢幕上的縮放比例
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+
+        // 獲取正確的點擊/觸控座標
+        let clientX, clientY;
+        if (e.touches && e.touches.length > 0) {
+            clientX = e.touches[0].clientX; // 觸控
+            clientY = e.touches[0].clientY;
+        } else {
+            clientX = e.clientX; // 滑鼠
+            clientY = e.clientY;
+        }
+        
+        // 換算回畫布的 "真實" 座標
+        const mouseX = (clientX - rect.left) * scaleX;
+        const mouseY = (clientY - rect.top) * scaleY;
+        
+        // 找到最近的點
         const clickedDot = findNearestDot(mouseX, mouseY);
-        if (!clickedDot) {
+        
+        if (!clickedDot) { // 點了空白處
             if (selectedDot1) {
-                cancelLine();
+                cancelLine(); // 取消當前的選取
             }
             return;
         }
+
         if (selectedDot1 === null) {
+            // 這是第一次點擊
             selectedDot1 = clickedDot;
         } else if (selectedDot2 === null) {
+            // 這是第二次點擊
             if (clickedDot === selectedDot1) {
+                // 點了同一個點，取消選取
                 selectedDot1 = null;
             } else {
+                // 選了第二個點
                 selectedDot2 = clickedDot;
+                // 顯示確認按鈕
                 actionBar.classList.remove('hidden');
             }
         }
-        drawCanvas();
+        
+        drawCanvas(); // 重繪以顯示高亮
     }
 
-    // 確認連線 (相同)
+    // "確認連線" 按鈕的函式
     function confirmLine() {
         if (!selectedDot1 || !selectedDot2) return;
         const dotA = selectedDot1;
         const dotB = selectedDot2;
 
+        // 1. 檢查線條是否有效 (橫/直/45度)
         if (!isValidLine(dotA, dotB)) {
             alert("無效的線條 (必須是橫線、直線或45度斜線)");
             cancelLine();
             return;
         }
 
+        // 2. 取得這條長線包含的所有"小線段"
         const segments = getSegmentsForLine(dotA, dotB);
         if (segments.length === 0) {
             alert("無效的路徑 (找不到對應的線段)");
@@ -246,6 +275,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // 3. 檢查是否有衝突 (是否壓到對手的線)
         const conflict = segments.some(seg => seg.drawn && seg.player !== currentPlayer);
         if (conflict) {
             alert("路徑被對手阻擋！");
@@ -253,6 +283,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // 4. 檢查是否是新線段
         const newSegmentsDrawn = segments.filter(seg => !seg.drawn);
         if (newSegmentsDrawn.length === 0) {
             alert("這條線您已經畫過了。");
@@ -260,17 +291,21 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // 5. 執行畫線 (標記為當前玩家)
         newSegmentsDrawn.forEach(seg => {
             seg.drawn = true;
             seg.player = currentPlayer;
         });
         
+        // 6. 檢查得分
         let scoredThisTurn = false;
         let totalFilledTriangles = 0;
         triangles.forEach(tri => {
             if (!tri.filled) {
+                // 檢查1：三條線是否都存在且都畫了
                 const isComplete = tri.lineKeys.every(key => lines[key] && lines[key].drawn);
                 if (isComplete) {
+                    // 檢查2：三條線是否都屬於當前玩家
                     const line1Player = lines[tri.lineKeys[0]].player;
                     const line2Player = lines[tri.lineKeys[1]].player;
                     const line3Player = lines[tri.lineKeys[2]].player;
@@ -278,41 +313,51 @@ document.addEventListener('DOMContentLoaded', () => {
                         tri.filled = true;
                         tri.player = currentPlayer;
                         scores[currentPlayer]++;
-                        scoredThisTurn = true;
+                        scoredThisTurn = true; // 得分！獲得額外回合
                     } else {
+                        // 三角形完成了，但是是"混色"的
                         tri.filled = true;
-                        tri.player = 0;
+                        tri.player = 0; // 標記為作廢
                     }
                 }
             }
             if (tri.filled) totalFilledTriangles++;
         });
 
+        // 7. 重置選取並隱藏按鈕
         selectedDot1 = null;
         selectedDot2 = null;
         actionBar.classList.add('hidden');
+        
+        // 8. 繪製並更新 UI
         drawCanvas();
         updateUI();
 
+        // 9. 檢查遊戲是否結束
         if (totalFilledTriangles === totalTriangles) {
             endGame();
             return;
         }
 
+        // 10. 如果沒有得分，則換人
         if (!scoredThisTurn) {
             switchPlayer();
         }
+        // (如果得分，則不換人，繼續回合)
     }
 
-    // 取消連線 (相同)
+    // "取消選取" 按鈕的函式
     function cancelLine() {
         selectedDot1 = null;
         selectedDot2 = null;
         actionBar.classList.add('hidden');
-        drawCanvas();
+        drawCanvas(); // 重繪以移除高亮
     }
 
-    // 輔助函式 - 找到最近的點 (相同)
+
+    // ----- 輔助函式 -----
+
+    // 輔助函式 - 找到最近的點
     function findNearestDot(mouseX, mouseY) {
         for (let r = 0; r < GRID_SIZE; r++) {
             for (let c = 0; c < GRID_SIZE; c++) {
@@ -326,7 +371,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return null;
     }
 
-    // 【修改】 輔助函式 - 檢查是否為 H, V, D, A
+    // 輔助函式 - 檢查是否為 H, V, D, A
     function isValidLine(dotA, dotB) {
         const dr = Math.abs(dotA.r - dotB.r);
         const dc = Math.abs(dotA.c - dotB.c);
@@ -336,7 +381,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return dr === 0 || dc === 0 || dr === dc;
     }
 
-    // 【修改】 輔助函式 - 取得長線上的所有小線段 (支援 H, V, D, A)
+    // 輔助函式 - 取得長線上的所有小線段
     function getSegmentsForLine(dotA, dotB) {
         const segments = [];
         const dr = Math.sign(dotB.r - dotA.r); // -1, 0, or 1
@@ -355,15 +400,15 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (dc === 0) { // 直線
                 segmentId = `V_${Math.min(r, next_r)},${c}`;
             } else if (dr === dc) { // 正斜線 \
-                if (dr === 1) { // 往下
+                if (dr === 1) { // 往下 (0,0 -> 1,1)
                     segmentId = `D_${r},${c}`;
-                } else { // 往上 (dr === -1)
+                } else { // 往上 (1,1 -> 0,0)
                     segmentId = `D_${next_r},${next_c}`;
                 }
             } else { // 反斜線 / (dr !== dc)
-                if (dr === 1) { // 往下 (dr=1, dc=-1)
+                if (dr === 1) { // 往下 (0,1 -> 1,0)
                     segmentId = `A_${r},${c}`;
-                } else { // 往上 (dr=-1, dc=1)
+                } else { // 往上 (1,0 -> 0,1)
                     segmentId = `A_${next_r},${next_c}`;
                 }
             }
@@ -371,7 +416,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (segmentId && lines[segmentId]) {
                 segments.push(lines[segmentId]);
             } else {
-                console.log("找不到線段 ID:", segmentId);
+                console.log("找不到線段 ID (或路徑無效):", segmentId);
             }
 
             r = next_r;
@@ -380,13 +425,13 @@ document.addEventListener('DOMContentLoaded', () => {
         return segments;
     }
 
-    // 切換玩家 (相同)
+    // 切換玩家
     function switchPlayer() {
         currentPlayer = (currentPlayer === 1) ? 2 : 1;
         updateUI();
     }
 
-    // 更新分數和玩家狀態 (相同)
+    // 更新分數和玩家狀態
     function updateUI() {
         score1El.textContent = scores[1];
         score2El.textContent = scores[2];
@@ -399,7 +444,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 遊戲結束 (相同)
+    // 遊戲結束
     function endGame() {
         let winnerMessage = "";
         if (scores[1] > scores[2]) {
@@ -411,11 +456,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         winnerText.textContent = winnerMessage;
         gameOverMessage.classList.remove('hidden');
-        actionBar.classList.add('hidden');
+        actionBar.classList.add('hidden'); // 遊戲結束時隱藏操作按鈕
     }
 
-    // 綁定事件 (相同)
+    // 綁定所有事件
     canvas.addEventListener('click', handleCanvasClick);
+    
+    // 增加觸控開始事件監聽 (手機優化)
+    canvas.addEventListener('touchstart', function(e) {
+        e.preventDefault(); // 防止 'click' 事件重複觸發 (鬼點擊)
+        handleCanvasClick(e); // 傳遞 'touch' 事件給主處理器
+    });
+
     resetButton.addEventListener('click', initGame);
     confirmLineButton.addEventListener('click', confirmLine);
     cancelLineButton.addEventListener('click', cancelLine);

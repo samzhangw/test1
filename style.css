@@ -1,30 +1,26 @@
-/* --- 變數定義 --- */
+/* --- 變數定義 (與前一版相同) --- */
 :root {
     --font-main: 'Nunito', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    
-    /* 顏色主題 */
-    --color-bg: #fdfaf6;       /* 柔和的米色背景 */
-    --color-text: #34495e;     /* 深藍灰色文字 */
-    --color-border: #e0e0e0;   /* 淺灰色邊框 */
+    --color-bg: #fdfaf6;
+    --color-text: #34495e;
+    --color-border: #e0e0e0;
     --color-white: #ffffff;
-    
-    /* 玩家顏色 */
-    --p1-color: #3498db;       /* 玩家 1 (藍) */
-    --p1-bg: #ecf5fb;          /* 玩家 1 背景 */
-    --p2-color: #e74c3c;       /* 玩家 2 (紅) */
-    --p2-bg: #fdf5f4;          /* 玩家 2 背景 */
-    
-    /* 按鈕顏色 */
-    --btn-primary: #3498db;    /* 主要 (藍) */
-    --btn-success: #2ecc71;    /* 成功 (綠) */
-    --btn-danger: #e74c3c;     /* 危險 (紅) */
-    
-    /* 陰影 */
+    --p1-color: #3498db;
+    --p1-bg: #ecf5fb;
+    --p2-color: #e74c3c;
+    --p2-bg: #fdf5f4;
+    --btn-primary: #3498db;
+    --btn-success: #2ecc71;
+    --btn-danger: #e74c3c;
     --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
     --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-/* --- 基礎樣式 --- */
+/* --- 【新】 基礎樣式 (包含手機優化) --- */
+* {
+    box-sizing: border-box; /* 確保 padding 不會撐爆寬度 */
+}
+
 body {
     font-family: var(--font-main);
     background-color: var(--color-bg);
@@ -32,9 +28,9 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
     min-height: 100vh;
     margin: 0;
+    padding: 10px; /* 在螢幕邊緣增加一點留白 */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
@@ -42,41 +38,44 @@ body {
 h1 {
     font-size: 2.5rem;
     font-weight: 700;
-    color: #2c3e50; /* 更深的標題色 */
+    color: #2c3e50;
     text-shadow: 1px 1px 2px rgba(0,0,0,0.05);
+    text-align: center; /* 手機上標題置中較佳 */
 }
 
-/* --- 遊戲容器佈局 --- */
+/* --- 【修改】 遊戲容器 (流體寬度) --- */
 #game-container {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 20px; /* 統一所有子元素的間距 */
+    gap: 20px;
+    width: 100%; /* 佔滿可用寬度 */
+    max-width: 500px; /* 最大寬度 (桌機版) */
 }
 
-/* --- 計分板 --- */
+/* --- 【修改】 計分板 (流體寬度) --- */
 #status-bar {
     display: flex;
     justify-content: space-between;
-    width: 450px; /* 稍微加寬 */
-    gap: 20px;
+    width: 100%; /* 佔滿容器寬度 */
+    gap: 10px; /* 縮小一點間距 */
 }
 
 .score-box {
-    flex: 1; /* 讓兩個計分板等寬 */
-    font-size: 1.25em;
+    flex: 1;
+    font-size: 1.15em; /* 稍微縮小以適應手機 */
     font-weight: 600;
-    padding: 12px 18px;
+    padding: 12px 10px; /* 調整 padding */
     border-radius: 10px;
     background-color: var(--color-white);
-    color: #95a5a6; /* 預設 (非啟用) 顏色 */
+    color: #95a5a6;
     border: 2px solid var(--color-border);
     box-shadow: var(--shadow-sm);
     text-align: center;
     transition: all 0.3s ease;
 }
 
-/* 玩家 1 啟用狀態 */
+/* 玩家 1 啟用狀態 (相同) */
 .score-box.active {
     border-color: var(--p1-color);
     color: var(--p1-color);
@@ -85,7 +84,7 @@ h1 {
     box-shadow: 0 3px 8px rgba(52, 152, 219, 0.3);
 }
 
-/* 玩家 2 啟用狀態 */
+/* 玩家 2 啟用狀態 (相同) */
 .score-box.player2.active {
     border-color: var(--p2-color);
     color: var(--p2-color);
@@ -93,69 +92,83 @@ h1 {
     box-shadow: 0 3px 8px rgba(231, 76, 60, 0.3);
 }
 
-/* --- 遊戲畫布 --- */
+/* --- 【修改】 遊戲畫布 (響應式) --- */
 canvas {
     background-color: var(--color-white);
-    border-radius: 12px; /* 更大的圓角 */
-    box-shadow: var(--shadow-md); /* 更明顯的陰影 */
+    border-radius: 12px;
+    box-shadow: var(--shadow-md);
     border: 1px solid var(--color-border);
     cursor: pointer;
+    width: 100%; /* 關鍵：讓畫布寬度縮放 */
+    height: auto; /* 關鍵：讓畫布高度等比縮放 */
 }
 
-/* --- 統一按鈕樣式 --- */
+/* --- 【修改】 統一按鈕樣式 (觸控優化) --- */
 .btn {
     font-family: var(--font-main);
-    font-size: 1em;
+    font-size: 1rem; /* 確保文字夠大 */
     font-weight: 700;
-    padding: 12px 24px;
+    padding: 14px 24px; /* 增加垂直 padding 讓按鈕更高 */
     border: none;
     border-radius: 8px;
     cursor: pointer;
     box-shadow: var(--shadow-sm);
     transition: all 0.2s ease-in-out;
     color: white;
+    width: 100%; /* 讓按鈕在小畫面上佔滿寬度 */
 }
 
-/* 按鈕懸停效果 */
+/* (按鈕懸停效果... 在手機上不明顯，但保留) */
 .btn:hover {
     transform: translateY(-2px) scale(1.02);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
-
 .btn:active {
     transform: translateY(0) scale(0.98);
     box-shadow: var(--shadow-sm);
 }
-
-/* 按鈕顏色 */
 .btn.primary { background-color: var(--btn-primary); }
 .btn.success { background-color: var(--btn-success); }
 .btn.danger  { background-color: var(--btn-danger); }
 
-/* --- 按鈕控制區 --- */
+/* --- 【修改】 按鈕控制區 --- */
 #action-bar {
     display: flex;
-    gap: 15px; /* 按鈕間距 */
+    gap: 10px;
+    width: 100%; /* 佔滿寬度 */
+    flex-direction: column; /* 【新】 手機上改為垂直排列 */
 }
 
 #game-controls {
     text-align: center;
-    /* 重新開始按鈕會放在這裡 */
+    width: 100%;
 }
 
-/* --- 遊戲結束訊息 --- */
+/* --- 遊戲結束訊息 (相同) --- */
 #game-over-message {
     text-align: center;
 }
-
 #winner-text {
     display: block;
     font-size: 1.8em;
     font-weight: 700;
     color: var(--color-text);
 }
-
-/* 隱藏 class */
 .hidden {
     display: none !important;
+}
+
+/* --- 【新】 媒體查詢 (針對平板和桌機) --- */
+/* 當螢幕寬度大於 500px 時... */
+@media (min-width: 500px) {
+    /* ...將按鈕改回水平排列 */
+    #action-bar {
+        flex-direction: row;
+    }
+    
+    .btn {
+        width: auto; /* 按鈕恢復自動寬度 */
+    }
+    
+    /* (計分板和標題的字體可以稍微調回來，但目前這樣也ok) */
 }
