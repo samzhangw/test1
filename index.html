@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>點點圍三角</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -22,9 +27,17 @@
 
         <canvas id="game-canvas"></canvas>
 
+        <div id="action-bar" class="hidden">
+            <button id="confirm-line-button" class="btn primary">確認連線</button>
+            <button id="cancel-line-button" class="btn danger">取消選取</button>
+        </div>
+
         <div id="game-over-message" class="hidden">
             <span id="winner-text"></span>
-            <button id="reset-button">重新開始</button>
+        </div>
+
+        <div id="game-controls">
+            <button id="reset-button" class="btn success">重新開始</button>
         </div>
     </div>
 
